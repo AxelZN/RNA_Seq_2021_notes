@@ -67,6 +67,6 @@ los primeros dos genes
 
 ```{r}
 rse[, c("A", "D", "F")]
-head(assay(rse[,c("A","B","C")]))
+head(assay(rse[,c("A","D","F")]))
 ```
-Este otro subset nos muestra los 200 genes con los features A, B y C
+Este otro subset nos muestra los 200 genes con los features A, D y F
