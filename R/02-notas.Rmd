@@ -70,3 +70,16 @@ rse[, c("A", "D", "F")]
 head(assay(rse[,c("A","D","F")]))
 ```
 Este otro subset nos muestra los 200 genes con los features A, D y F
+
+```{r}
+library("iSEE")
+iSEE::iSEE(rse)
+```
+
+```{r}
+sce_layer <- spatialLIBD::fetch_data("sce_layer")
+```
+```{r}
+iSEE::iSEE(sce_layer)
+```
+En el heatmap pudimos ver que los genes MOBP y MBP se expresan más en la capa WM
