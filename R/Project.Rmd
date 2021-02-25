@@ -1,0 +1,24 @@
+---
+title: "recount"
+author: "Axel Zagal"
+date: "24/2/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(recount3)
+proj_info <- subset(
+    human_projects,
+    project == "HEART" & project_type == "data_sources"
+)
+
+rse_gene_HEART <- create_rse(proj_info)
+```
+```{r}
+iSEE::iSEE(rse_gene_HEART)
+```
+
