@@ -33,6 +33,7 @@ vd <- ExploreModelMatrix::VisualizeDesign(
 cowplot::plot_grid(plotlist = vd$plotlist)
 ```
 ```{r}
+library(ExploreModelMatrix)
 app <- ExploreModelMatrix(
     sampleData = sampleData,
     designFormula = ~ genotype + treatment
@@ -221,7 +222,6 @@ pheatmap(
 )
 ```
 ```{r}
-#rowRanges(rse_gene_SRP045638)$gene_id
 
 gene_index <-match(row.names(exprs_heatmap),rowRanges(rse_gene_SRP045638)$gene_id)
 
@@ -238,7 +238,7 @@ pheatmap(
     show_rownames = TRUE,
     show_colnames = FALSE,
     annotation_col = df,
-    fontsize_row = 5
+    fontsize_row = 5,
 )
 ```
 
