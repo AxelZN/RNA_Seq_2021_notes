@@ -1,0 +1,45 @@
+---
+title: "04-notas.Rmd"
+author: "Axel Zagal"
+date: "26/2/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+speaqeasy_data <- file.path(tempdir(), "rse_speaqeasy.RData")
+download.file("https://github.com/LieberInstitute/SPEAQeasy-example/blob/master/rse_speaqeasy.RData?raw=true", speaqeasy_data, mode = "wb")
+library("SummarizedExperiment")
+load(speaqeasy_data, verbose = TRUE)
+```
+```{r}
+snap <- which(rowRanges(rse_gene)$Symbol == "SNAP25")
+snap
+
+assay(rse_gene)[snap,]
+```
+
+```{r}
+df <- data.frame(
+    expression = assay(rse_gene)[snap, ],
+    Dx = rse_gene$PrimaryDx
+)
+df
+```
+
+```{r}
+ggplot(df, aes(y = log2(expression + 0.5), group = Dx, x = Dx)) +
+    geom_boxplot() +
+    theme_bw(base_size = 20) +
+    xlab("Diagnosis") +
+    ylab("SNAP25: log2(x + 0.5)")
+```
+
+
+```{r}
+if (interactive()) iSEE::iSEE(rse_gene)
+```
+
