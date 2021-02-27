@@ -11,14 +11,31 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(recount3)
+human_projects <- available_projects()
 proj_info <- subset(
     human_projects,
-    project == "HEART" & project_type == "data_sources"
+    project == "ERP109920" & project_type == "data_sources"
 )
 
-rse_gene_HEART <- create_rse(proj_info)
+rse_gene_d_fibro <- create_rse(proj_info)
 ```
 ```{r}
-iSEE::iSEE(rse_gene_HEART)
+rowRanges(rse_gene_d_fibro)
+
+```
+```{r}
+assay(rse_gene_d_fibro, "counts") <- compute_read_counts(rse_gene_d_fibro)
+
+```
+
+```{r}
+rse_gene_d_fibro <- expand_sra_attributes(rse_gene_d_fibro)
+colData(rse_gene_d_fibro)[
+    ,
+    grepl("^sra_attribute", colnames(colData(rse_gene_d_fibro)))
+]
+```
+```{r}
+iSEE::iSEE(rse_gene_d_fibro)
 ```
 
