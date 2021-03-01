@@ -1,5 +1,5 @@
 ---
-title: "recount"
+title: "Differential Expression"
 author: "Axel Zagal"
 date: "24/2/2021"
 output: html_document
@@ -9,33 +9,163 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+# project list
+
+ERP109920
+
+SRP126648 dopaminergic
+
+ERP111522 HDAC4
+
+ERP017126 pancreas dm2
+
+SRP158367 ipsc
+
+# Differential Expression analysis of ipsc-derived neurons
+
+## We download the selected data set
+
+```{r include=FALSE}
 library(recount3)
+```
+
+
+```{r message=FALSE}
 human_projects <- available_projects()
 proj_info <- subset(
     human_projects,
-    project == "ERP109920" & project_type == "data_sources"
+    project == "SRP158367" & project_type == "data_sources"
 )
 
-rse_gene_d_fibro <- create_rse(proj_info)
 ```
-```{r}
-rowRanges(rse_gene_d_fibro)
+## This creates the rse object using the data set
 
-```
-```{r}
-assay(rse_gene_d_fibro, "counts") <- compute_read_counts(rse_gene_d_fibro)
-
+```{r message=FALSE}
+rse_ipsc <- create_rse(proj_info)
 ```
 
+## We change to a counts per read format
+
 ```{r}
-rse_gene_d_fibro <- expand_sra_attributes(rse_gene_d_fibro)
-colData(rse_gene_d_fibro)[
+assay(rse_ipsc, "counts") <- compute_read_counts(rse_ipsc)
+
+```
+
+## Facilitate the access to data attributes
+
+```{r}
+rse_gene_ipsc <- expand_sra_attributes(rse_ipsc)
+colData(rse_ipsc)[
     ,
-    grepl("^sra_attribute", colnames(colData(rse_gene_d_fibro)))
+    grepl("^sra_attribute", colnames(colData(rse_ipsc)))
 ]
-```
-```{r}
-iSEE::iSEE(rse_gene_d_fibro)
+
 ```
 
+## Change the data to a factor or numeric data type as needed
+
+```{r}
+rse_gene_ipsc$sra_attribute.batch <- as.numeric(rse_gene_ipsc$sra_attribute.batch)
+rse_gene_ipsc$sra_attribute.cell_line <- factor(rse_gene_ipsc$sra_attribute.cell_line)
+rse_gene_ipsc$sra_attribute.cell_type <- factor(rse_gene_ipsc$sra_attribute.cell_type)
+rse_gene_ipsc$sra_attribute.site <- factor(rse_gene_ipsc$sra_attribute.site)
+rse_gene_ipsc$sra_attribute.source_name <- factor(rse_gene_ipsc$sra_attribute.source_name)
+rse_gene_ipsc$sra_attribute.time_point <- factor(rse_gene_ipsc$sra_attribute.time_point)
+rse_gene_ipsc$sra_attribute.well <- factor(rse_gene_ipsc$sra_attribute.well)
+
+```
+
+## Now we use edgeR to normalize the data
+
+```{r}
+library("edgeR") 
+dge <- DGEList(
+    counts = assay(rse_gene_ipsc, "counts"),
+    genes = rowData(rse_gene_ipsc)
+)
+dge <- calcNormFactors(dge)
+```
+
+## Get cell lines names
+
+```{r}
+summary(as.data.frame(colData(rse_gene_ipsc)[
+    ,
+    grepl("^sra_attribute.[cell_line]", colnames(colData(rse_gene_ipsc)))
+]))
+```
+## Create a factor of both cell lines
+
+```{r}
+rse_gene_ipsc$line <- factor(ifelse(rse_gene_ipsc$sra_attribute.cell_line == "SB808", "A", "B"))
+table(rse_gene_ipsc$line)
+```
+
+## Get the assigned gene prop
+
+```{r}
+rse_gene_ipsc$assigned_gene_prop <- rse_gene_ipsc$recount_qc.gene_fc_count_all.assigned / rse_gene_ipsc$recount_qc.gene_fc_count_all.total
+
+summary(rse_gene_ipsc$assigned_gene_prop)
+```
+
+## Compare the assigned gene prop on each cell line
+
+```{r}
+library("ggplot2")
+ggplot(as.data.frame(colData(rse_gene_ipsc)), aes(y = assigned_gene_prop, x = line)) +
+    geom_boxplot() +
+    theme_bw(base_size = 20) +
+    ylab("Assigned Gene Prop") +
+    xlab("Cell Line")
+```
+## We create a model matrix
+
+```{r}
+mod <- model.matrix(~ line +  + assigned_gene_prop,
+    data = colData(rse_gene_ipsc)
+)
+
+```
+## This creates a voom plot using the dge object and the model matrix
+
+```{r}
+library("limma")
+vGene <- voom(dge, mod, plot = TRUE)
+```
+
+## Then we use the eBayes function for differential expression
+
+```{r}
+eb_results <- eBayes(lmFit(vGene))
+
+de_results <- topTable(
+    eb_results,
+    coef = 2,
+    number = nrow(rse_gene_ipsc),
+    sort.by = "none"
+)
+dim(de_results)
+```
+
+## Number of genes expressed in each group with FDR < 0.05%
+
+```{r}
+table(de_results$adj.P.Val < 0.05)
+```
+
+## We can visualize the results using plotMA and a volcano plot
+
+```{r}
+plotMA(eb_results, coef = 2)
+```
+
+```{r}
+volcanoplot(eb_results, coef = 2, highlight = 3, names = de_results$gene_name)
+```
+
+## Finally, we display the three highlighted genes
+
+```{r}
+de_results[de_results$gene_name %in% c("TMSB4XP8", "TMSB4X", "ANKRD20A"), ]
+```
